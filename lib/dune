@@ -1,0 +1,18 @@
+(library
+ (name dirscribe)
+ (libraries 
+   core  
+   core_unix 
+   async 
+   core_unix.sys_unix 
+   uri 
+   cohttp 
+   cohttp-async 
+   yojson
+  )
+ (modules 
+   llm_utils
+   os_utils 
+   pretty_print 
+  )
+ (preprocess (pps ppx_jane)))
