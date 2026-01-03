@@ -155,6 +155,10 @@ let generate_current_directory_files_summaries (directory : Os_utils.directory)
       (List.map valid_files ~f:(fun file ->
            let prompt = file_to_summarization_prompt file in
            let%bind llm_json = llm_request ~model ~api_key ~prompt in
+           let%bind () =
+             Pretty_print.inform_user "FILE DONE: %s\n" file.relative_path
+           in
+           let%bind () = Writer.flushed (Lazy.force Writer.stdout) in
            return (content_of_gemini_json llm_json)))
   in
   let files_summaries_paired = List.zip_exn valid_files_paths file_summaries in
@@ -186,6 +190,10 @@ let generate_current_directory_summary (directory : Os_utils.directory) ~model
   let prompt = generate_dir_summarization_prompt directory in
   let%bind llm_json = llm_request ~model ~api_key ~prompt in
   let llm_content = content_of_gemini_json llm_json in
+  let%bind () =
+    Pretty_print.inform_user "DIR DONE: %s\n" directory.relative_path
+  in
+  let%bind () = Writer.flushed (Lazy.force Writer.stdout) in
   return { directory with llm_summary = Finished llm_content }
 
 let rec generate_directory_summary (root_directory : Os_utils.directory) ~model

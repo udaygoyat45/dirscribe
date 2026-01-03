@@ -6,6 +6,7 @@ type llm_summary = YetToBegin | Finished of string [@@deriving sexp]
 
 type file = {
   name : string;
+  relative_path : string;
   absolute_path : string;
   content : content_format;
   llm_summary : llm_summary;
@@ -32,7 +33,7 @@ and fileVisibility = AvailableFile of file | IgnoreFile of string
 let max_depth = 1
 let context_window = 1_000_000
 
-let validate_path path =
+let validate_path_exn path =
   match Sys_unix.is_directory path with
   | `Yes -> ()
   | `Unknown ->
@@ -42,13 +43,12 @@ let validate_path path =
             (path : string)]
   | `No -> raise_s [%message "Path is not a valid directory" (path : string)]
 
-let load_env_file base_path () =
+let load_env_file env_path () =
   let parse_line line =
     match String.split ~on:'=' line with
     | [ key; value ] -> Some (key, value)
     | _ -> None
   in
-  let env_path = Filename.concat base_path ".env" in
   let dot_env_entries =
     In_channel.with_file env_path ~f:(fun file ->
         List.filter_map ~f:parse_line (In_channel.input_lines file))
@@ -60,6 +60,14 @@ let load_env_file base_path () =
   match Map.of_alist_or_error (module String) env_entries with
   | Ok m -> m
   | Error e -> raise_s [%message "Ill-formatted env file" (e : Error.t)]
+
+let validate_dot_dirscribe dot_dirscribe_path =
+  let dir_exists = Sys_unix.is_directory_exn dot_dirscribe_path in
+  if not dir_exists then
+    let%bind () = Unix.mkdir ~perm:0o755 dot_dirscribe_path in
+    Pretty_print.inform_user "Created DOT Dirscribe path %s\n"
+      dot_dirscribe_path
+  else return ()
 
 let load_gitignore_file base_path () =
   let parse_line line =
@@ -126,6 +134,7 @@ let rec collect_data_aux ~ignore_paths path base_path depth =
                      content = get_file_content item_path;
                      llm_summary = YetToBegin;
                      absolute_path = item_path;
+                     relative_path = Filename.concat path name;
                    })
           | false -> None)
         dir_list

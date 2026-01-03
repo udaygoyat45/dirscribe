@@ -30,3 +30,7 @@ let pretty_sprintf_string format str depth =
   match depth with
   | _ when depth < 0 -> Stdlib.Printf.sprintf "%s\n" str'
   | _ -> Stdlib.Printf.sprintf "%s\n" (n_block depth ^ branch ^ " " ^ str')
+
+let inform_user fmt msg =
+  printf fmt msg;
+  Writer.flushed (Lazy.force Writer.stdout)
